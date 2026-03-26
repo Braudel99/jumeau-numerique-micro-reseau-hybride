@@ -824,13 +824,13 @@ def render_footer():
         </div>
         <div class="footer-copyright">
             <p style="margin: 0;">
-                🌍 <strong>Jumeau Numérique</strong> - Plateforme de Simulation Micro-Réseau Hybride
+                🌍 <strong>Jumeau Numérique</strong> - Plateforme de Simulation Micro-Réseau Hybride PV - SBEE- Diesel
             </p>
             <p style="margin: 0.5rem 0 0 0;">
                 Version 4.0 | Master en Technopédagogie et Didactique | Bénin {current_year}
             </p>
             <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; opacity: 0.7;">
-                Développé avec ❤️ pour l'éducation et la transition énergétique
+                Développé avec Wilson BARNOR pour l'éducation et la transition énergétique
             </p>
         </div>
     </div>
