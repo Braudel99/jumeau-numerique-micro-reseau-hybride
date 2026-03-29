@@ -1293,8 +1293,8 @@ with tab1:
                 st.session_state.resultats_simulation = run_simulation_24h(config)
                 st.session_state.simulation_lancee = True
                 st.session_state.etape_progression = 2
-                # Passer en mode présentation automatiquement
-                st.session_state.mode_presentation = True
+                # Mode présentation désactivé par défaut (l'utilisateur peut l'activer manuellement)
+                # st.session_state.mode_presentation = True
             st.rerun()
     
     if st.session_state.simulation_lancee and st.session_state.resultats_simulation:
