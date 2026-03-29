@@ -824,13 +824,13 @@ def render_footer():
         </div>
         <div class="footer-copyright">
             <p style="margin: 0;">
-                🌍 <strong>Jumeau Numérique</strong> - Plateforme de Simulation Micro-Réseau Hybride PV - SBEE- Diesel
+                🌍 <strong>Jumeau Numérique</strong> - Plateforme de Simulation Micro-Réseau Hybride
             </p>
             <p style="margin: 0.5rem 0 0 0;">
                 Version 4.0 | Master en Technopédagogie et Didactique | Bénin {current_year}
             </p>
             <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem; opacity: 0.7;">
-                Développé avec Wilson BARNOR pour l'éducation et la transition énergétique
+                Développé par Wilson BARNOR pour l'éducation et la transition énergétique
             </p>
         </div>
     </div>
@@ -1363,12 +1363,34 @@ with tab1:
             render_download_button_for_chart(fig, "graphique_24h", "dl_graph_24h")
         
         with col_g2:
-            # Camembert
+            # Camembert - Répartition des sources d'énergie
             labels, values, colors = [], [], []
-            if sum(res['ppv_vers_charge']) > 0: labels.append('PV'); values.append(sum(res['ppv_vers_charge'])); colors.append('#fbbf24')
-            if res['ebat'] > 0: labels.append('Batterie'); values.append(res['ebat']); colors.append('#0ea5e9')
-            if res['esbee'] > 0: labels.append('SBEE'); values.append(res['esbee']); colors.append('#22c55e')
-            if res['ediesel'] > 0: labels.append('Diesel'); values.append(res['ediesel']); colors.append('#f97316')
+            
+            # PV : énergie PV utilisée (vers charge + vers batterie)
+            pv_utilise = sum(res['ppv_vers_charge']) + sum(res['pbat_charge'])
+            if pv_utilise > 0: 
+                labels.append('PV')
+                values.append(pv_utilise)
+                colors.append('#fbbf24')
+            
+            # Batterie : énergie déchargée vers la charge
+            bat_decharge = sum(res['pbat_vers_charge'])
+            if bat_decharge > 0: 
+                labels.append('Batterie')
+                values.append(bat_decharge)
+                colors.append('#0ea5e9')
+            
+            # SBEE
+            if res['esbee'] > 0: 
+                labels.append('SBEE')
+                values.append(res['esbee'])
+                colors.append('#22c55e')
+            
+            # Diesel
+            if res['ediesel'] > 0: 
+                labels.append('Diesel')
+                values.append(res['ediesel'])
+                colors.append('#f97316')
             
             if labels:
                 fig_pie = go.Figure(go.Pie(labels=labels, values=values, hole=0.6, marker=dict(colors=colors)))
