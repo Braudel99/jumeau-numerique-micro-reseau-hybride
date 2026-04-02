@@ -86,13 +86,8 @@ if 'theme' not in st.session_state:
     st.session_state.theme = 'dark'
 if 'mode_presentation' not in st.session_state:
     st.session_state.mode_presentation = False
-
-# Forcer la réinitialisation si la sidebar est cachée par erreur
-if 'force_sidebar_visible' not in st.session_state:
-    st.session_state.force_sidebar_visible = True
-    st.session_state.mode_presentation = False
 if 'etape_progression' not in st.session_state:
-    st.session_state.etape_progression = 1  # 1=Config, 2=Simulation, 3=Analyse, 4=Export
+    st.session_state.etape_progression = 1
 
 # ============================================================================
 # CONFIGURATION DES THÈMES GLASSMORPHISM
@@ -634,25 +629,19 @@ def render_header_sticky():
     current_time = datetime.now().strftime("%H:%M")
     current_date = datetime.now().strftime("%d/%m/%Y")
     
-    # Boutons mode présentation, thème et réinitialisation
-    col_pres, col_theme_btn, col_reset = st.columns([1, 1, 1])
-    with col_pres:
-        if st.button("🖥️ Mode Présentation" if not st.session_state.mode_presentation else "📱 Mode Normal", 
-                     key="btn_presentation", use_container_width=True):
-            st.session_state.mode_presentation = not st.session_state.mode_presentation
-            st.rerun()
-    with col_theme_btn:
-        theme_icon = "☀️ Mode Clair" if st.session_state.theme == 'dark' else "🌙 Mode Sombre"
-        if st.button(theme_icon, key="btn_theme", use_container_width=True):
-            st.session_state.theme = 'light' if st.session_state.theme == 'dark' else 'dark'
-            st.rerun()
-    with col_reset:
-        if st.button("🔄 Réinitialiser", key="btn_reset", use_container_width=True):
-            st.session_state.mode_presentation = False
-            st.session_state.simulation_lancee = False
-            st.session_state.resultats_simulation = None
-            st.session_state.etape_progression = 1
-            st.rerun()
+    # Boutons mode présentation et thème (seulement si simulation lancée)
+    if st.session_state.simulation_lancee:
+        col_pres, col_theme_btn = st.columns([1, 1])
+        with col_pres:
+            if st.button("📱 Mode Normal" if st.session_state.mode_presentation else "🖥️ Mode Présentation", 
+                         key="btn_presentation", use_container_width=True):
+                st.session_state.mode_presentation = not st.session_state.mode_presentation
+                st.rerun()
+        with col_theme_btn:
+            theme_icon = "☀️ Mode Clair" if st.session_state.theme == 'dark' else "🌙 Mode Sombre"
+            if st.button(theme_icon, key="btn_theme", use_container_width=True):
+                st.session_state.theme = 'light' if st.session_state.theme == 'dark' else 'dark'
+                st.rerun()
     
     # Header principal
     st.markdown(f"""
@@ -962,9 +951,10 @@ def export_to_excel(resultats, config):
 render_header()
 
 # ============================================================================
-# INDICATEUR DE PROGRESSION
+# INDICATEUR DE PROGRESSION (seulement si simulation lancée)
 # ============================================================================
-render_progress_indicator()
+if st.session_state.simulation_lancee:
+    render_progress_indicator()
 
 # ============================================================================
 # SIDEBAR - CONFIGURATION COMPLÈTE
@@ -1151,17 +1141,18 @@ config = {
 }
 
 # ============================================================================
-# VALIDATION EN TEMPS RÉEL
+# VALIDATION EN TEMPS RÉEL (seulement si simulation pas encore lancée)
 # ============================================================================
-st.markdown("### ✅ Validation Configuration")
-validation_alerts = validate_configuration(config)
-
-cols_valid = st.columns(len(validation_alerts))
-for i, (alert_type, message) in enumerate(validation_alerts):
-    with cols_valid[i]:
-        colors = {'success': '#22c55e', 'warning': '#fbbf24', 'danger': '#ef4444'}
-        icons = {'success': '✅', 'warning': '⚠️', 'danger': '🚨'}
-        st.markdown(f'<div style="background: {colors[alert_type]}20; padding: 0.5rem; border-radius: 8px; border-left: 3px solid {colors[alert_type]};"><span style="color: {colors[alert_type]}; font-size: 0.85rem;">{icons[alert_type]} {message}</span></div>', unsafe_allow_html=True)
+if not st.session_state.simulation_lancee:
+    st.markdown("### ✅ Validation Configuration")
+    validation_alerts = validate_configuration(config)
+    
+    cols_valid = st.columns(len(validation_alerts))
+    for i, (alert_type, message) in enumerate(validation_alerts):
+        with cols_valid[i]:
+            colors = {'success': '#22c55e', 'warning': '#fbbf24', 'danger': '#ef4444'}
+            icons = {'success': '✅', 'warning': '⚠️', 'danger': '🚨'}
+            st.markdown(f'<div style="background: {colors[alert_type]}20; padding: 0.5rem; border-radius: 8px; border-left: 3px solid {colors[alert_type]};"><span style="color: {colors[alert_type]}; font-size: 0.85rem;">{icons[alert_type]} {message}</span></div>', unsafe_allow_html=True)
 
 # ============================================================================
 # FONCTION DE SIMULATION
@@ -1305,8 +1296,8 @@ with tab1:
                 st.session_state.resultats_simulation = run_simulation_24h(config)
                 st.session_state.simulation_lancee = True
                 st.session_state.etape_progression = 2
-                # Mode présentation désactivé par défaut (l'utilisateur peut l'activer manuellement)
-                # st.session_state.mode_presentation = True
+                # Passer automatiquement en mode présentation
+                st.session_state.mode_presentation = True
             st.rerun()
     
     if st.session_state.simulation_lancee and st.session_state.resultats_simulation:
