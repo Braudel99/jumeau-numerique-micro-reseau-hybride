@@ -963,8 +963,6 @@ if st.session_state.simulation_lancee:
 # SIDEBAR - CONFIGURATION COMPLÈTE
 # ============================================================================
 with st.sidebar:
-    st.markdown('<div style="text-align: center; padding: 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.1);"><h2 style="color: #f8fafc; font-size: 1.2rem; margin: 0;">⚙️ Configuration</h2></div>', unsafe_allow_html=True)
-    
     # === PRESETS ===
     st.markdown("#### 📋 Presets")
     preset = st.selectbox("Config", ["Personnalisé", "🏥 Clinique", "🏨 Hôtel", "🏭 Industrie", "🏠 Villa"], label_visibility="collapsed")
@@ -1144,12 +1142,10 @@ config = {
 }
 
 # ============================================================================
-# VALIDATION EN TEMPS RÉEL (seulement si simulation pas encore lancée)
+# VALIDATION - seulement APRÈS simulation lancée
 # ============================================================================
-if not st.session_state.simulation_lancee:
-    st.markdown("### ✅ Validation Configuration")
+if st.session_state.simulation_lancee:
     validation_alerts = validate_configuration(config)
-    
     cols_valid = st.columns(len(validation_alerts))
     for i, (alert_type, message) in enumerate(validation_alerts):
         with cols_valid[i]:
@@ -1284,9 +1280,6 @@ st.markdown("---")
 
 # Afficher les onglets seulement si simulation lancée, sinon afficher le bouton
 if not st.session_state.simulation_lancee:
-    st.markdown("### 🚀 Prêt à simuler")
-    st.info("👈 Configurez les paramètres dans la barre latérale, puis cliquez sur le bouton ci-dessous.")
-    
     col_left, col_center, col_right = st.columns([1, 2, 1])
     with col_center:
         if st.button("🚀 LANCER SIMULATION", type="primary", use_container_width=True):
@@ -1673,420 +1666,420 @@ else:
         # Bouton téléchargement PNG multi-jours
         render_download_button_for_chart(fig_mj, f"simulation_{nb_jours}_jours", "dl_multi_jours")
 
-# ============================================================================
-# TAB 3: COMPARAISON
-# ============================================================================
-with tab3:
-    st.markdown("### 🔄 Comparaison Scénarios")
-    
-    if len(st.session_state.scenarios) == 0:
-        st.info("💡 Aucun scénario sauvegardé. Lancez une simulation et cliquez sur **💾 Sauvegarder**.")
-    elif len(st.session_state.scenarios) == 1:
-        st.warning("⚠️ Sauvegardez au moins 2 scénarios pour les comparer.")
-        st.markdown("**Scénario actuel:**")
-        for name, data in st.session_state.scenarios.items():
-            st.write(f"- **{name}**: PV {data['config']['ptot']/1000:.2f} kWc, Batterie {data['config']['energie_bat_max']:.1f} kWh, Couverture {data['resultats']['couverture']:.1f}%")
-    else:
-        st.success(f"✅ {len(st.session_state.scenarios)} scénarios disponibles pour comparaison")
+    # ============================================================================
+    # TAB 3: COMPARAISON
+    # ============================================================================
+    with tab3:
+        st.markdown("### 🔄 Comparaison Scénarios")
         
-        # Liste des scénarios
-        for name, data in st.session_state.scenarios.items():
-            with st.expander(f"📁 {name} ({data['timestamp']})"):
-                col_sc1, col_sc2 = st.columns(2)
-                with col_sc1:
-                    st.write(f"**PV:** {data['config']['ptot']/1000:.2f} kWc")
-                    st.write(f"**Batterie:** {data['config']['energie_bat_max']:.1f} kWh ({data['config']['tbat']})")
-                    st.write(f"**Charge Max:** {data['config']['puissance_max_charge']:.1f} kW")
-                with col_sc2:
-                    st.write(f"**Couverture:** {data['resultats']['couverture']:.1f}%")
-                    st.write(f"**Déficit:** {data['resultats']['deficit_total']:.1f} kWh")
-                    st.write(f"**SBEE utilisé:** {data['resultats']['esbee']:.1f} kWh")
-        
-        # Graphique de comparaison
-        st.markdown("---")
-        st.markdown("#### 📊 Comparaison Graphique")
-        
-        plot_colors = get_plot_colors()
-        scenario_names = list(st.session_state.scenarios.keys())
-        
-        # Graphique barres groupées
-        fig_comp = go.Figure()
-        
-        metrics = [
-            ('epv', 'Production PV', '#fbbf24'),
-            ('ebat', 'Batterie', '#0ea5e9'),
-            ('esbee', 'SBEE', '#22c55e'),
-            ('ediesel', 'Diesel', '#f97316'),
-        ]
-        
-        for metric_key, metric_name, color in metrics:
-            values = [st.session_state.scenarios[name]['resultats'].get(metric_key, 0) for name in scenario_names]
-            fig_comp.add_trace(go.Bar(name=metric_name, x=scenario_names, y=values, marker_color=color))
-        
-        fig_comp.update_layout(
-            barmode='group',
-            title='Comparaison des Sources d\'Énergie (kWh)',
-            xaxis_title='Scénario',
-            yaxis_title='Énergie (kWh)',
-            height=400,
-            plot_bgcolor=plot_colors['plot_bg'],
-            paper_bgcolor=plot_colors['paper_bg'],
-            font=dict(color=plot_colors['font_color']),
-            legend=dict(orientation='h', y=1.1)
-        )
-        st.plotly_chart(fig_comp, use_container_width=True)
-        render_download_button_for_chart(fig_comp, "comparaison_scenarios", "dl_comp")
-        
-        # Tableau comparatif détaillé
-        st.markdown("#### 📋 Tableau Comparatif")
-        comp_data = []
-        for n, d in st.session_state.scenarios.items():
-            comp_data.append({
-                'Scénario': n,
-                'PV (kWc)': f"{d['config']['ptot']/1000:.2f}",
-                'Batterie (kWh)': f"{d['config']['energie_bat_max']:.1f}",
-                'Type Bat.': d['config']['tbat'],
-                'Prod. PV (kWh)': f"{d['resultats']['epv']:.1f}",
-                'SBEE (kWh)': f"{d['resultats']['esbee']:.1f}",
-                'Couverture': f"{d['resultats']['couverture']:.1f}%",
-                'Déficit (kWh)': f"{d['resultats']['deficit_total']:.1f}"
-            })
-        st.dataframe(pd.DataFrame(comp_data), use_container_width=True, hide_index=True)
-        
-        # Bouton effacer
-        st.markdown("---")
-        if st.button("🗑️ Effacer tous les scénarios", type="secondary"):
-            st.session_state.scenarios = {}
-            st.rerun()
+        if len(st.session_state.scenarios) == 0:
+            st.info("💡 Aucun scénario sauvegardé. Lancez une simulation et cliquez sur **💾 Sauvegarder**.")
+        elif len(st.session_state.scenarios) == 1:
+            st.warning("⚠️ Sauvegardez au moins 2 scénarios pour les comparer.")
+            st.markdown("**Scénario actuel:**")
+            for name, data in st.session_state.scenarios.items():
+                st.write(f"- **{name}**: PV {data['config']['ptot']/1000:.2f} kWc, Batterie {data['config']['energie_bat_max']:.1f} kWh, Couverture {data['resultats']['couverture']:.1f}%")
+        else:
+            st.success(f"✅ {len(st.session_state.scenarios)} scénarios disponibles pour comparaison")
+            
+            # Liste des scénarios
+            for name, data in st.session_state.scenarios.items():
+                with st.expander(f"📁 {name} ({data['timestamp']})"):
+                    col_sc1, col_sc2 = st.columns(2)
+                    with col_sc1:
+                        st.write(f"**PV:** {data['config']['ptot']/1000:.2f} kWc")
+                        st.write(f"**Batterie:** {data['config']['energie_bat_max']:.1f} kWh ({data['config']['tbat']})")
+                        st.write(f"**Charge Max:** {data['config']['puissance_max_charge']:.1f} kW")
+                    with col_sc2:
+                        st.write(f"**Couverture:** {data['resultats']['couverture']:.1f}%")
+                        st.write(f"**Déficit:** {data['resultats']['deficit_total']:.1f} kWh")
+                        st.write(f"**SBEE utilisé:** {data['resultats']['esbee']:.1f} kWh")
+            
+            # Graphique de comparaison
+            st.markdown("---")
+            st.markdown("#### 📊 Comparaison Graphique")
+            
+            plot_colors = get_plot_colors()
+            scenario_names = list(st.session_state.scenarios.keys())
+            
+            # Graphique barres groupées
+            fig_comp = go.Figure()
+            
+            metrics = [
+                ('epv', 'Production PV', '#fbbf24'),
+                ('ebat', 'Batterie', '#0ea5e9'),
+                ('esbee', 'SBEE', '#22c55e'),
+                ('ediesel', 'Diesel', '#f97316'),
+            ]
+            
+            for metric_key, metric_name, color in metrics:
+                values = [st.session_state.scenarios[name]['resultats'].get(metric_key, 0) for name in scenario_names]
+                fig_comp.add_trace(go.Bar(name=metric_name, x=scenario_names, y=values, marker_color=color))
+            
+            fig_comp.update_layout(
+                barmode='group',
+                title='Comparaison des Sources d\'Énergie (kWh)',
+                xaxis_title='Scénario',
+                yaxis_title='Énergie (kWh)',
+                height=400,
+                plot_bgcolor=plot_colors['plot_bg'],
+                paper_bgcolor=plot_colors['paper_bg'],
+                font=dict(color=plot_colors['font_color']),
+                legend=dict(orientation='h', y=1.1)
+            )
+            st.plotly_chart(fig_comp, use_container_width=True)
+            render_download_button_for_chart(fig_comp, "comparaison_scenarios", "dl_comp")
+            
+            # Tableau comparatif détaillé
+            st.markdown("#### 📋 Tableau Comparatif")
+            comp_data = []
+            for n, d in st.session_state.scenarios.items():
+                comp_data.append({
+                    'Scénario': n,
+                    'PV (kWc)': f"{d['config']['ptot']/1000:.2f}",
+                    'Batterie (kWh)': f"{d['config']['energie_bat_max']:.1f}",
+                    'Type Bat.': d['config']['tbat'],
+                    'Prod. PV (kWh)': f"{d['resultats']['epv']:.1f}",
+                    'SBEE (kWh)': f"{d['resultats']['esbee']:.1f}",
+                    'Couverture': f"{d['resultats']['couverture']:.1f}%",
+                    'Déficit (kWh)': f"{d['resultats']['deficit_total']:.1f}"
+                })
+            st.dataframe(pd.DataFrame(comp_data), use_container_width=True, hide_index=True)
+            
+            # Bouton effacer
+            st.markdown("---")
+            if st.button("🗑️ Effacer tous les scénarios", type="secondary"):
+                st.session_state.scenarios = {}
+                st.rerun()
 
-# ============================================================================
-# TAB 4: EXPORT
-# ============================================================================
-with tab4:
-    # Mise à jour de l'étape de progression
-    if st.session_state.simulation_lancee:
-        st.session_state.etape_progression = 4
-    
-    st.markdown("### 📥 Export des Données et Rapports")
-    
-    # Section Excel
-    st.markdown("#### 📊 Exports Excel")
-    col_x1, col_x2 = st.columns(2)
-    
-    with col_x1:
-        st.markdown("**Simulation 24h**")
-        if st.session_state.resultats_simulation:
-            excel = export_to_excel(st.session_state.resultats_simulation, config)
-            st.download_button("📥 Télécharger Excel 24h", data=excel, file_name=f"simulation_24h_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-        else:
-            st.info("Lancez une simulation 24h d'abord")
-    
-    with col_x2:
-        st.markdown("**Multi-Jours**")
-        if st.session_state.multi_jours_resultats:
-            excel_mj = export_to_excel(st.session_state.multi_jours_resultats, config)
-            st.download_button("📥 Télécharger Excel Multi-Jours", data=excel_mj, file_name=f"multi_jours_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-        else:
-            st.info("Lancez une simulation multi-jours d'abord")
-    
-    # Section PDF
-    st.markdown("---")
-    st.markdown("#### 📄 Rapports PDF")
-    
-    col_pdf1, col_pdf2, col_pdf3 = st.columns(3)
-    
-    # PDF Technique
-    with col_pdf1:
-        st.markdown("**📋 Rapport Technique Complet**")
-        st.caption("Configuration, bilan 24h, profil horaire")
+    # ============================================================================
+    # TAB 4: EXPORT
+    # ============================================================================
+    with tab4:
+        # Mise à jour de l'étape de progression
+        if st.session_state.simulation_lancee:
+            st.session_state.etape_progression = 4
         
-        if st.session_state.resultats_simulation:
-            if st.button("📄 Générer PDF Technique", key="btn_gen_tech", use_container_width=True):
-                try:
-                    from fpdf import FPDF
-                    res = st.session_state.resultats_simulation
-                    
-                    pdf = FPDF()
-                    pdf.add_page()
-                    pdf.set_auto_page_break(auto=True, margin=15)
-                    
-                    # Titre
-                    pdf.set_font('Helvetica', 'B', 20)
-                    pdf.set_text_color(0, 80, 120)
-                    pdf.cell(0, 15, 'RAPPORT TECHNIQUE - SIMULATION 24H', 0, 1, 'C')
-                    pdf.set_font('Helvetica', '', 11)
-                    pdf.set_text_color(100, 100, 100)
-                    pdf.cell(0, 8, f'Date: {datetime.now().strftime("%d/%m/%Y %H:%M")}', 0, 1, 'C')
-                    pdf.cell(0, 8, f'Installation: {config["type_charge"].replace("_", " ").title()}', 0, 1, 'C')
-                    pdf.ln(10)
-                    
-                    # Configuration
-                    pdf.set_font('Helvetica', 'B', 14)
-                    pdf.set_text_color(0, 80, 120)
-                    pdf.cell(0, 10, '1. CONFIGURATION SYSTEME', 0, 1, 'L')
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                    pdf.ln(5)
-                    
-                    pdf.set_font('Helvetica', '', 10)
-                    pdf.set_text_color(0, 0, 0)
-                    configs_data = [
-                        ("PV installe", f"{config['ptot']/1000:.2f} kWc ({config['type_techno']})"),
-                        ("Surface PV", f"{config['surf']:.1f} m2"),
-                        ("Batterie", f"{config['cap']:.0f} Ah / {config['energie_bat_max']:.1f} kWh ({config['tbat']})"),
-                        ("Tension systeme", f"{config['vbat']} V"),
-                        ("Onduleur", f"{config['pond']:.1f} kW"),
-                        ("SBEE", f"{'Connecte' if config['sbee_dispo'] else 'Non'} - {config['psbee']} kW - {config['scenario_sbee']}"),
-                        ("Diesel", f"{'Actif' if config['diesel_on'] else 'Inactif'} - {config['pdies']} kW"),
-                        ("Irradiation", f"{config['irr_journaliere']} kWh/m2/jour"),
-                    ]
-                    for label, val in configs_data:
-                        pdf.cell(60, 6, f"  {label}:", 0, 0)
-                        pdf.set_font('Helvetica', 'B', 10)
-                        pdf.cell(0, 6, val, 0, 1)
-                        pdf.set_font('Helvetica', '', 10)
-                    
-                    # Bilan
-                    pdf.ln(5)
-                    pdf.set_font('Helvetica', 'B', 14)
-                    pdf.set_text_color(0, 80, 120)
-                    pdf.cell(0, 10, '2. BILAN ENERGETIQUE 24H', 0, 1, 'L')
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                    pdf.ln(5)
-                    
-                    pdf.set_font('Helvetica', '', 10)
-                    pdf.set_text_color(0, 0, 0)
-                    bilans = [
-                        ("Production PV", f"{res['epv']:.1f} kWh"),
-                        ("Batterie fournie", f"{res['ebat']:.1f} kWh"),
-                        ("SBEE consomme", f"{res['esbee']:.1f} kWh"),
-                        ("Diesel consomme", f"{res['ediesel']:.1f} kWh"),
-                        ("Charge totale", f"{res['ech']:.1f} kWh"),
-                        ("Deficit", f"{res['deficit_total']:.1f} kWh"),
-                        ("Heures hors tension", f"{res['heures_hors_tension']}"),
-                        ("Taux couverture", f"{res['couverture']:.1f}%"),
-                    ]
-                    for label, val in bilans:
-                        pdf.cell(60, 6, f"  {label}:", 0, 0)
-                        pdf.set_font('Helvetica', 'B', 10)
-                        pdf.cell(0, 6, val, 0, 1)
-                        pdf.set_font('Helvetica', '', 10)
-                    
-                    # Batterie
-                    pdf.ln(5)
-                    pdf.set_font('Helvetica', 'B', 14)
-                    pdf.set_text_color(0, 80, 120)
-                    pdf.cell(0, 10, '3. ETAT BATTERIE', 0, 1, 'L')
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                    pdf.ln(5)
-                    
-                    pdf.set_font('Helvetica', '', 10)
-                    pdf.set_text_color(0, 0, 0)
-                    energie_chargee = sum(res['pbat_charge'])
-                    energie_dechargee = sum(res['pbat_decharge'])
-                    cycles = energie_dechargee / config['energie_bat_max'] if config['energie_bat_max'] > 0 else 0
-                    
-                    bats = [
-                        ("Energie chargee", f"{energie_chargee:.1f} kWh"),
-                        ("Energie dechargee", f"{energie_dechargee:.1f} kWh"),
-                        ("Cycles equivalent", f"{cycles:.2f}"),
-                        ("SOC initial", f"{res['soc_24h'][0]:.1f}%"),
-                        ("SOC final", f"{res['soc_24h'][-1]:.1f}%"),
-                        ("SOC min", f"{min(res['soc_24h']):.1f}%"),
-                        ("SOC max", f"{max(res['soc_24h']):.1f}%"),
-                    ]
-                    for label, val in bats:
-                        pdf.cell(60, 6, f"  {label}:", 0, 0)
-                        pdf.set_font('Helvetica', 'B', 10)
-                        pdf.cell(0, 6, val, 0, 1)
-                        pdf.set_font('Helvetica', '', 10)
-                    
-                    # Tableau horaire
-                    pdf.add_page()
-                    pdf.set_font('Helvetica', 'B', 14)
-                    pdf.set_text_color(0, 80, 120)
-                    pdf.cell(0, 10, '4. PROFIL HORAIRE DETAILLE', 0, 1, 'L')
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                    pdf.ln(5)
-                    
-                    pdf.set_fill_color(240, 240, 240)
-                    pdf.set_font('Helvetica', 'B', 8)
-                    pdf.cell(15, 7, 'Heure', 1, 0, 'C', True)
-                    pdf.cell(25, 7, 'Charge', 1, 0, 'C', True)
-                    pdf.cell(25, 7, 'PV', 1, 0, 'C', True)
-                    pdf.cell(25, 7, 'Batterie', 1, 0, 'C', True)
-                    pdf.cell(25, 7, 'SBEE', 1, 0, 'C', True)
-                    pdf.cell(25, 7, 'Diesel', 1, 0, 'C', True)
-                    pdf.cell(20, 7, 'SOC', 1, 0, 'C', True)
-                    pdf.cell(25, 7, 'Deficit', 1, 1, 'C', True)
-                    
-                    pdf.set_font('Helvetica', '', 7)
-                    for h in res['hrs']:
-                        pdf.cell(15, 5, f'{h}:00', 1, 0, 'C')
-                        pdf.cell(25, 5, f'{res["pch"][h]:.1f}', 1, 0, 'C')
-                        pdf.cell(25, 5, f'{res["ppv"][h]:.1f}', 1, 0, 'C')
-                        pdf.cell(25, 5, f'{res["pbat_vers_charge"][h]:.1f}', 1, 0, 'C')
-                        pdf.cell(25, 5, f'{res["psbee"][h]:.1f}', 1, 0, 'C')
-                        pdf.cell(25, 5, f'{res["pdiesel"][h]:.1f}', 1, 0, 'C')
-                        pdf.cell(20, 5, f'{res["soc_24h"][h]:.0f}%', 1, 0, 'C')
-                        pdf.cell(25, 5, f'{res["deficits"][h]:.1f}' if res["deficits"][h] > 0 else '-', 1, 1, 'C')
-                    
-                    pdf.ln(10)
-                    pdf.set_font('Helvetica', 'I', 9)
-                    pdf.set_text_color(100, 100, 100)
-                    pdf.cell(0, 6, 'Jumeau Numerique - Benin 2025', 0, 1, 'C')
-                    
-                    st.session_state.pdf_tech_data = bytes(pdf.output())
-                    st.session_state.pdf_tech_ready = True
-                    st.success("✅ PDF généré!")
-                except Exception as e:
-                    st.error(f"Erreur: {e}")
+        st.markdown("### 📥 Export des Données et Rapports")
+        
+        # Section Excel
+        st.markdown("#### 📊 Exports Excel")
+        col_x1, col_x2 = st.columns(2)
+        
+        with col_x1:
+            st.markdown("**Simulation 24h**")
+            if st.session_state.resultats_simulation:
+                excel = export_to_excel(st.session_state.resultats_simulation, config)
+                st.download_button("📥 Télécharger Excel 24h", data=excel, file_name=f"simulation_24h_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+            else:
+                st.info("Lancez une simulation 24h d'abord")
+        
+        with col_x2:
+            st.markdown("**Multi-Jours**")
+            if st.session_state.multi_jours_resultats:
+                excel_mj = export_to_excel(st.session_state.multi_jours_resultats, config)
+                st.download_button("📥 Télécharger Excel Multi-Jours", data=excel_mj, file_name=f"multi_jours_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+            else:
+                st.info("Lancez une simulation multi-jours d'abord")
+        
+        # Section PDF
+        st.markdown("---")
+        st.markdown("#### 📄 Rapports PDF")
+        
+        col_pdf1, col_pdf2, col_pdf3 = st.columns(3)
+        
+        # PDF Technique
+        with col_pdf1:
+            st.markdown("**📋 Rapport Technique Complet**")
+            st.caption("Configuration, bilan 24h, profil horaire")
             
-            if st.session_state.pdf_tech_ready and st.session_state.pdf_tech_data:
-                st.download_button("📥 Télécharger PDF Technique", data=st.session_state.pdf_tech_data, file_name="Rapport_Technique_24h.pdf", mime="application/pdf", use_container_width=True)
-        else:
-            st.info("Lancez une simulation d'abord")
-    
-    # PDF Économique
-    with col_pdf2:
-        st.markdown("**💰 Rapport Économique**")
-        st.caption("CAPEX, OPEX, Payback, ROI")
-        
-        if hasattr(st.session_state, 'resultats_eco') and st.session_state.resultats_eco:
-            if st.button("📄 Générer PDF Économique", key="btn_gen_eco", use_container_width=True):
-                try:
-                    pdf_eco_bytes = generer_rapport_pdf(
-                        st.session_state.config_rapport_eco, 
-                        st.session_state.resultats_eco, 
-                        st.session_state.params_eco
-                    )
-                    st.session_state.pdf_eco_data = pdf_eco_bytes
-                    st.session_state.pdf_eco_ready = True
-                    st.success("✅ PDF généré!")
-                except Exception as e:
-                    st.error(f"Erreur: {e}")
-            
-            if st.session_state.pdf_eco_ready and st.session_state.pdf_eco_data:
-                st.download_button("📥 Télécharger PDF Économique", data=st.session_state.pdf_eco_data, file_name="Rapport_Economique.pdf", mime="application/pdf", use_container_width=True)
-        else:
-            st.info("Activez l'analyse économique et lancez une simulation")
-    
-    # PDF Optimisation
-    with col_pdf3:
-        st.markdown("**🤖 Rapport Optimisation**")
-        st.caption("Recommandation dimensionnement")
-        
-        if hasattr(st.session_state, 'opt_data') and st.session_state.opt_data:
-            if st.button("📄 Générer PDF Optimisation", key="btn_gen_opt", use_container_width=True):
-                try:
-                    from fpdf import FPDF
-                    opt = st.session_state.opt_data
-                    
-                    pdf = FPDF()
-                    pdf.add_page()
-                    pdf.set_font('Helvetica', 'B', 18)
-                    pdf.set_text_color(0, 100, 50)
-                    pdf.cell(0, 15, 'OPTIMISATION SYSTEME PV', 0, 1, 'C')
-                    pdf.set_font('Helvetica', '', 11)
-                    pdf.set_text_color(100, 100, 100)
-                    pdf.cell(0, 8, f'Date: {datetime.now().strftime("%d/%m/%Y %H:%M")}', 0, 1, 'C')
-                    pdf.ln(10)
-                    
-                    pdf.set_font('Helvetica', 'B', 12)
-                    pdf.set_text_color(0, 80, 120)
-                    pdf.cell(0, 8, '1. CONFIGURATION RECOMMANDEE', 0, 1)
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                    pdf.ln(5)
-                    
-                    pdf.set_font('Helvetica', '', 10)
-                    pdf.set_text_color(0, 0, 0)
-                    pdf.cell(60, 6, 'Panneaux 200W:', 0, 0)
-                    pdf.set_font('Helvetica', 'B', 10)
-                    pdf.cell(0, 6, f'{opt["nb_panneaux_200w"]} unites ({opt["pv_reel_kwc"]:.1f} kWc)', 0, 1)
-                    pdf.set_font('Helvetica', '', 10)
-                    pdf.cell(60, 6, 'Batteries 200Ah:', 0, 0)
-                    pdf.set_font('Helvetica', 'B', 10)
-                    pdf.cell(0, 6, f'{opt["nb_batteries_200ah"]} unites ({opt["capacite_reelle_kwh"]:.1f} kWh)', 0, 1)
-                    pdf.set_font('Helvetica', '', 10)
-                    pdf.cell(60, 6, 'Onduleurs 5kVA:', 0, 0)
-                    pdf.set_font('Helvetica', 'B', 10)
-                    pdf.cell(0, 6, f'{opt["nb_onduleurs"]} unites', 0, 1)
-                    pdf.set_font('Helvetica', '', 10)
-                    pdf.cell(60, 6, 'Regulateur:', 0, 0)
-                    pdf.set_font('Helvetica', 'B', 10)
-                    pdf.cell(0, 6, opt["regulateur"], 0, 1)
-                    
-                    pdf.ln(5)
-                    pdf.set_font('Helvetica', 'B', 12)
-                    pdf.set_text_color(0, 80, 120)
-                    pdf.cell(0, 8, '2. PERFORMANCES ESTIMEES', 0, 1)
-                    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-                    pdf.ln(5)
-                    
-                    pdf.set_font('Helvetica', '', 10)
-                    pdf.set_text_color(0, 0, 0)
-                    pdf.cell(60, 6, 'Production estimee:', 0, 0)
-                    pdf.cell(0, 6, f'{opt["production_estimee"]:.1f} kWh/jour', 0, 1)
-                    pdf.cell(60, 6, 'Couverture:', 0, 0)
-                    pdf.cell(0, 6, f'{opt["couverture_estimee"]:.0f}%', 0, 1)
-                    pdf.cell(60, 6, 'Autonomie:', 0, 0)
-                    pdf.cell(0, 6, f'{opt["autonomie_heures"]} heures', 0, 1)
-                    pdf.cell(60, 6, 'Complement SBEE:', 0, 0)
-                    pdf.cell(0, 6, f'{opt["complement_sbee"]:.1f} kWh/jour', 0, 1)
-                    
-                    if opt["cout_total"] > 0:
-                        pdf.ln(5)
-                        pdf.set_font('Helvetica', 'B', 12)
+            if st.session_state.resultats_simulation:
+                if st.button("📄 Générer PDF Technique", key="btn_gen_tech", use_container_width=True):
+                    try:
+                        from fpdf import FPDF
+                        res = st.session_state.resultats_simulation
+                        
+                        pdf = FPDF()
+                        pdf.add_page()
+                        pdf.set_auto_page_break(auto=True, margin=15)
+                        
+                        # Titre
+                        pdf.set_font('Helvetica', 'B', 20)
                         pdf.set_text_color(0, 80, 120)
-                        pdf.cell(0, 8, '3. ESTIMATION DES COUTS', 0, 1)
+                        pdf.cell(0, 15, 'RAPPORT TECHNIQUE - SIMULATION 24H', 0, 1, 'C')
+                        pdf.set_font('Helvetica', '', 11)
+                        pdf.set_text_color(100, 100, 100)
+                        pdf.cell(0, 8, f'Date: {datetime.now().strftime("%d/%m/%Y %H:%M")}', 0, 1, 'C')
+                        pdf.cell(0, 8, f'Installation: {config["type_charge"].replace("_", " ").title()}', 0, 1, 'C')
+                        pdf.ln(10)
+                        
+                        # Configuration
+                        pdf.set_font('Helvetica', 'B', 14)
+                        pdf.set_text_color(0, 80, 120)
+                        pdf.cell(0, 10, '1. CONFIGURATION SYSTEME', 0, 1, 'L')
                         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
                         pdf.ln(5)
                         
                         pdf.set_font('Helvetica', '', 10)
                         pdf.set_text_color(0, 0, 0)
-                        pdf.cell(60, 6, 'Panneaux:', 0, 0)
-                        pdf.cell(0, 6, f'{opt["cout_panneaux"]:,.0f} FCFA', 0, 1)
-                        pdf.cell(60, 6, 'Batteries:', 0, 0)
-                        pdf.cell(0, 6, f'{opt["cout_batteries"]:,.0f} FCFA', 0, 1)
-                        pdf.cell(60, 6, 'Onduleurs:', 0, 0)
-                        pdf.cell(0, 6, f'{opt["cout_ond"]:,.0f} FCFA', 0, 1)
-                        pdf.cell(60, 6, 'Installation:', 0, 0)
-                        pdf.cell(0, 6, f'{opt["cout_inst"]:,.0f} FCFA', 0, 1)
-                        pdf.set_font('Helvetica', 'B', 11)
-                        pdf.cell(60, 8, 'TOTAL:', 0, 0)
-                        pdf.cell(0, 8, f'{opt["cout_total"]:,.0f} FCFA', 0, 1)
-                    
-                    pdf.ln(10)
-                    pdf.set_font('Helvetica', 'I', 9)
-                    pdf.set_text_color(100, 100, 100)
-                    pdf.cell(0, 6, 'Jumeau Numerique - Benin 2025', 0, 1, 'C')
-                    
-                    st.session_state.pdf_opt_data = bytes(pdf.output())
-                    st.session_state.pdf_opt_ready = True
-                    st.success("✅ PDF généré!")
-                except Exception as e:
-                    st.error(f"Erreur: {e}")
+                        configs_data = [
+                            ("PV installe", f"{config['ptot']/1000:.2f} kWc ({config['type_techno']})"),
+                            ("Surface PV", f"{config['surf']:.1f} m2"),
+                            ("Batterie", f"{config['cap']:.0f} Ah / {config['energie_bat_max']:.1f} kWh ({config['tbat']})"),
+                            ("Tension systeme", f"{config['vbat']} V"),
+                            ("Onduleur", f"{config['pond']:.1f} kW"),
+                            ("SBEE", f"{'Connecte' if config['sbee_dispo'] else 'Non'} - {config['psbee']} kW - {config['scenario_sbee']}"),
+                            ("Diesel", f"{'Actif' if config['diesel_on'] else 'Inactif'} - {config['pdies']} kW"),
+                            ("Irradiation", f"{config['irr_journaliere']} kWh/m2/jour"),
+                        ]
+                        for label, val in configs_data:
+                            pdf.cell(60, 6, f"  {label}:", 0, 0)
+                            pdf.set_font('Helvetica', 'B', 10)
+                            pdf.cell(0, 6, val, 0, 1)
+                            pdf.set_font('Helvetica', '', 10)
+                        
+                        # Bilan
+                        pdf.ln(5)
+                        pdf.set_font('Helvetica', 'B', 14)
+                        pdf.set_text_color(0, 80, 120)
+                        pdf.cell(0, 10, '2. BILAN ENERGETIQUE 24H', 0, 1, 'L')
+                        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                        pdf.ln(5)
+                        
+                        pdf.set_font('Helvetica', '', 10)
+                        pdf.set_text_color(0, 0, 0)
+                        bilans = [
+                            ("Production PV", f"{res['epv']:.1f} kWh"),
+                            ("Batterie fournie", f"{res['ebat']:.1f} kWh"),
+                            ("SBEE consomme", f"{res['esbee']:.1f} kWh"),
+                            ("Diesel consomme", f"{res['ediesel']:.1f} kWh"),
+                            ("Charge totale", f"{res['ech']:.1f} kWh"),
+                            ("Deficit", f"{res['deficit_total']:.1f} kWh"),
+                            ("Heures hors tension", f"{res['heures_hors_tension']}"),
+                            ("Taux couverture", f"{res['couverture']:.1f}%"),
+                        ]
+                        for label, val in bilans:
+                            pdf.cell(60, 6, f"  {label}:", 0, 0)
+                            pdf.set_font('Helvetica', 'B', 10)
+                            pdf.cell(0, 6, val, 0, 1)
+                            pdf.set_font('Helvetica', '', 10)
+                        
+                        # Batterie
+                        pdf.ln(5)
+                        pdf.set_font('Helvetica', 'B', 14)
+                        pdf.set_text_color(0, 80, 120)
+                        pdf.cell(0, 10, '3. ETAT BATTERIE', 0, 1, 'L')
+                        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                        pdf.ln(5)
+                        
+                        pdf.set_font('Helvetica', '', 10)
+                        pdf.set_text_color(0, 0, 0)
+                        energie_chargee = sum(res['pbat_charge'])
+                        energie_dechargee = sum(res['pbat_decharge'])
+                        cycles = energie_dechargee / config['energie_bat_max'] if config['energie_bat_max'] > 0 else 0
+                        
+                        bats = [
+                            ("Energie chargee", f"{energie_chargee:.1f} kWh"),
+                            ("Energie dechargee", f"{energie_dechargee:.1f} kWh"),
+                            ("Cycles equivalent", f"{cycles:.2f}"),
+                            ("SOC initial", f"{res['soc_24h'][0]:.1f}%"),
+                            ("SOC final", f"{res['soc_24h'][-1]:.1f}%"),
+                            ("SOC min", f"{min(res['soc_24h']):.1f}%"),
+                            ("SOC max", f"{max(res['soc_24h']):.1f}%"),
+                        ]
+                        for label, val in bats:
+                            pdf.cell(60, 6, f"  {label}:", 0, 0)
+                            pdf.set_font('Helvetica', 'B', 10)
+                            pdf.cell(0, 6, val, 0, 1)
+                            pdf.set_font('Helvetica', '', 10)
+                        
+                        # Tableau horaire
+                        pdf.add_page()
+                        pdf.set_font('Helvetica', 'B', 14)
+                        pdf.set_text_color(0, 80, 120)
+                        pdf.cell(0, 10, '4. PROFIL HORAIRE DETAILLE', 0, 1, 'L')
+                        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                        pdf.ln(5)
+                        
+                        pdf.set_fill_color(240, 240, 240)
+                        pdf.set_font('Helvetica', 'B', 8)
+                        pdf.cell(15, 7, 'Heure', 1, 0, 'C', True)
+                        pdf.cell(25, 7, 'Charge', 1, 0, 'C', True)
+                        pdf.cell(25, 7, 'PV', 1, 0, 'C', True)
+                        pdf.cell(25, 7, 'Batterie', 1, 0, 'C', True)
+                        pdf.cell(25, 7, 'SBEE', 1, 0, 'C', True)
+                        pdf.cell(25, 7, 'Diesel', 1, 0, 'C', True)
+                        pdf.cell(20, 7, 'SOC', 1, 0, 'C', True)
+                        pdf.cell(25, 7, 'Deficit', 1, 1, 'C', True)
+                        
+                        pdf.set_font('Helvetica', '', 7)
+                        for h in res['hrs']:
+                            pdf.cell(15, 5, f'{h}:00', 1, 0, 'C')
+                            pdf.cell(25, 5, f'{res["pch"][h]:.1f}', 1, 0, 'C')
+                            pdf.cell(25, 5, f'{res["ppv"][h]:.1f}', 1, 0, 'C')
+                            pdf.cell(25, 5, f'{res["pbat_vers_charge"][h]:.1f}', 1, 0, 'C')
+                            pdf.cell(25, 5, f'{res["psbee"][h]:.1f}', 1, 0, 'C')
+                            pdf.cell(25, 5, f'{res["pdiesel"][h]:.1f}', 1, 0, 'C')
+                            pdf.cell(20, 5, f'{res["soc_24h"][h]:.0f}%', 1, 0, 'C')
+                            pdf.cell(25, 5, f'{res["deficits"][h]:.1f}' if res["deficits"][h] > 0 else '-', 1, 1, 'C')
+                        
+                        pdf.ln(10)
+                        pdf.set_font('Helvetica', 'I', 9)
+                        pdf.set_text_color(100, 100, 100)
+                        pdf.cell(0, 6, 'Jumeau Numerique - Benin 2025', 0, 1, 'C')
+                        
+                        st.session_state.pdf_tech_data = bytes(pdf.output())
+                        st.session_state.pdf_tech_ready = True
+                        st.success("✅ PDF généré!")
+                    except Exception as e:
+                        st.error(f"Erreur: {e}")
+                
+                if st.session_state.pdf_tech_ready and st.session_state.pdf_tech_data:
+                    st.download_button("📥 Télécharger PDF Technique", data=st.session_state.pdf_tech_data, file_name="Rapport_Technique_24h.pdf", mime="application/pdf", use_container_width=True)
+            else:
+                st.info("Lancez une simulation d'abord")
+        
+        # PDF Économique
+        with col_pdf2:
+            st.markdown("**💰 Rapport Économique**")
+            st.caption("CAPEX, OPEX, Payback, ROI")
             
-            if st.session_state.pdf_opt_ready and st.session_state.pdf_opt_data:
-                st.download_button("📥 Télécharger PDF Optimisation", data=st.session_state.pdf_opt_data, file_name="Rapport_Optimisation.pdf", mime="application/pdf", use_container_width=True)
+            if hasattr(st.session_state, 'resultats_eco') and st.session_state.resultats_eco:
+                if st.button("📄 Générer PDF Économique", key="btn_gen_eco", use_container_width=True):
+                    try:
+                        pdf_eco_bytes = generer_rapport_pdf(
+                            st.session_state.config_rapport_eco, 
+                            st.session_state.resultats_eco, 
+                            st.session_state.params_eco
+                        )
+                        st.session_state.pdf_eco_data = pdf_eco_bytes
+                        st.session_state.pdf_eco_ready = True
+                        st.success("✅ PDF généré!")
+                    except Exception as e:
+                        st.error(f"Erreur: {e}")
+                
+                if st.session_state.pdf_eco_ready and st.session_state.pdf_eco_data:
+                    st.download_button("📥 Télécharger PDF Économique", data=st.session_state.pdf_eco_data, file_name="Rapport_Economique.pdf", mime="application/pdf", use_container_width=True)
+            else:
+                st.info("Activez l'analyse économique et lancez une simulation")
+        
+        # PDF Optimisation
+        with col_pdf3:
+            st.markdown("**🤖 Rapport Optimisation**")
+            st.caption("Recommandation dimensionnement")
+            
+            if hasattr(st.session_state, 'opt_data') and st.session_state.opt_data:
+                if st.button("📄 Générer PDF Optimisation", key="btn_gen_opt", use_container_width=True):
+                    try:
+                        from fpdf import FPDF
+                        opt = st.session_state.opt_data
+                        
+                        pdf = FPDF()
+                        pdf.add_page()
+                        pdf.set_font('Helvetica', 'B', 18)
+                        pdf.set_text_color(0, 100, 50)
+                        pdf.cell(0, 15, 'OPTIMISATION SYSTEME PV', 0, 1, 'C')
+                        pdf.set_font('Helvetica', '', 11)
+                        pdf.set_text_color(100, 100, 100)
+                        pdf.cell(0, 8, f'Date: {datetime.now().strftime("%d/%m/%Y %H:%M")}', 0, 1, 'C')
+                        pdf.ln(10)
+                        
+                        pdf.set_font('Helvetica', 'B', 12)
+                        pdf.set_text_color(0, 80, 120)
+                        pdf.cell(0, 8, '1. CONFIGURATION RECOMMANDEE', 0, 1)
+                        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                        pdf.ln(5)
+                        
+                        pdf.set_font('Helvetica', '', 10)
+                        pdf.set_text_color(0, 0, 0)
+                        pdf.cell(60, 6, 'Panneaux 200W:', 0, 0)
+                        pdf.set_font('Helvetica', 'B', 10)
+                        pdf.cell(0, 6, f'{opt["nb_panneaux_200w"]} unites ({opt["pv_reel_kwc"]:.1f} kWc)', 0, 1)
+                        pdf.set_font('Helvetica', '', 10)
+                        pdf.cell(60, 6, 'Batteries 200Ah:', 0, 0)
+                        pdf.set_font('Helvetica', 'B', 10)
+                        pdf.cell(0, 6, f'{opt["nb_batteries_200ah"]} unites ({opt["capacite_reelle_kwh"]:.1f} kWh)', 0, 1)
+                        pdf.set_font('Helvetica', '', 10)
+                        pdf.cell(60, 6, 'Onduleurs 5kVA:', 0, 0)
+                        pdf.set_font('Helvetica', 'B', 10)
+                        pdf.cell(0, 6, f'{opt["nb_onduleurs"]} unites', 0, 1)
+                        pdf.set_font('Helvetica', '', 10)
+                        pdf.cell(60, 6, 'Regulateur:', 0, 0)
+                        pdf.set_font('Helvetica', 'B', 10)
+                        pdf.cell(0, 6, opt["regulateur"], 0, 1)
+                        
+                        pdf.ln(5)
+                        pdf.set_font('Helvetica', 'B', 12)
+                        pdf.set_text_color(0, 80, 120)
+                        pdf.cell(0, 8, '2. PERFORMANCES ESTIMEES', 0, 1)
+                        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                        pdf.ln(5)
+                        
+                        pdf.set_font('Helvetica', '', 10)
+                        pdf.set_text_color(0, 0, 0)
+                        pdf.cell(60, 6, 'Production estimee:', 0, 0)
+                        pdf.cell(0, 6, f'{opt["production_estimee"]:.1f} kWh/jour', 0, 1)
+                        pdf.cell(60, 6, 'Couverture:', 0, 0)
+                        pdf.cell(0, 6, f'{opt["couverture_estimee"]:.0f}%', 0, 1)
+                        pdf.cell(60, 6, 'Autonomie:', 0, 0)
+                        pdf.cell(0, 6, f'{opt["autonomie_heures"]} heures', 0, 1)
+                        pdf.cell(60, 6, 'Complement SBEE:', 0, 0)
+                        pdf.cell(0, 6, f'{opt["complement_sbee"]:.1f} kWh/jour', 0, 1)
+                        
+                        if opt["cout_total"] > 0:
+                            pdf.ln(5)
+                            pdf.set_font('Helvetica', 'B', 12)
+                            pdf.set_text_color(0, 80, 120)
+                            pdf.cell(0, 8, '3. ESTIMATION DES COUTS', 0, 1)
+                            pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                            pdf.ln(5)
+                            
+                            pdf.set_font('Helvetica', '', 10)
+                            pdf.set_text_color(0, 0, 0)
+                            pdf.cell(60, 6, 'Panneaux:', 0, 0)
+                            pdf.cell(0, 6, f'{opt["cout_panneaux"]:,.0f} FCFA', 0, 1)
+                            pdf.cell(60, 6, 'Batteries:', 0, 0)
+                            pdf.cell(0, 6, f'{opt["cout_batteries"]:,.0f} FCFA', 0, 1)
+                            pdf.cell(60, 6, 'Onduleurs:', 0, 0)
+                            pdf.cell(0, 6, f'{opt["cout_ond"]:,.0f} FCFA', 0, 1)
+                            pdf.cell(60, 6, 'Installation:', 0, 0)
+                            pdf.cell(0, 6, f'{opt["cout_inst"]:,.0f} FCFA', 0, 1)
+                            pdf.set_font('Helvetica', 'B', 11)
+                            pdf.cell(60, 8, 'TOTAL:', 0, 0)
+                            pdf.cell(0, 8, f'{opt["cout_total"]:,.0f} FCFA', 0, 1)
+                        
+                        pdf.ln(10)
+                        pdf.set_font('Helvetica', 'I', 9)
+                        pdf.set_text_color(100, 100, 100)
+                        pdf.cell(0, 6, 'Jumeau Numerique - Benin 2025', 0, 1, 'C')
+                        
+                        st.session_state.pdf_opt_data = bytes(pdf.output())
+                        st.session_state.pdf_opt_ready = True
+                        st.success("✅ PDF généré!")
+                    except Exception as e:
+                        st.error(f"Erreur: {e}")
+                
+                if st.session_state.pdf_opt_ready and st.session_state.pdf_opt_data:
+                    st.download_button("📥 Télécharger PDF Optimisation", data=st.session_state.pdf_opt_data, file_name="Rapport_Optimisation.pdf", mime="application/pdf", use_container_width=True)
+            else:
+                st.info("Lancez une simulation pour voir les recommandations")
+        
+        # Section JSON
+        st.markdown("---")
+        st.markdown("#### 📋 Export Scénarios (JSON)")
+        if st.session_state.scenarios:
+            json_data = json.dumps({n: {'config': {k: float(v) if isinstance(v, (np.floating, np.integer)) else v for k, v in d['config'].items()}, 'timestamp': d['timestamp']} for n, d in st.session_state.scenarios.items()}, indent=2, default=str)
+            st.download_button("📥 Télécharger Scénarios JSON", data=json_data, file_name="scenarios.json", mime="application/json", use_container_width=True)
         else:
-            st.info("Lancez une simulation pour voir les recommandations")
-    
-    # Section JSON
-    st.markdown("---")
-    st.markdown("#### 📋 Export Scénarios (JSON)")
-    if st.session_state.scenarios:
-        json_data = json.dumps({n: {'config': {k: float(v) if isinstance(v, (np.floating, np.integer)) else v for k, v in d['config'].items()}, 'timestamp': d['timestamp']} for n, d in st.session_state.scenarios.items()}, indent=2, default=str)
-        st.download_button("📥 Télécharger Scénarios JSON", data=json_data, file_name="scenarios.json", mime="application/json", use_container_width=True)
-    else:
-        st.info("Aucun scénario sauvegardé")
+            st.info("Aucun scénario sauvegardé pour l'instant")
 
-# ============================================================================
-# TAB 5: MODE PÉDAGOGIQUE
-# ============================================================================
-with tab5:
-    render_mode_pedagogique()
+    # ============================================================================
+    # TAB 5: MODE PÉDAGOGIQUE
+    # ============================================================================
+    with tab5:
+        render_mode_pedagogique()
 
-# ============================================================================
+    # ============================================================================
 # FOOTER AMÉLIORÉ
 # ============================================================================
 render_footer()
