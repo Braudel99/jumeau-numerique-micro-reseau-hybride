@@ -86,6 +86,11 @@ if 'theme' not in st.session_state:
     st.session_state.theme = 'dark'
 if 'mode_presentation' not in st.session_state:
     st.session_state.mode_presentation = False
+
+# Forcer la réinitialisation si la sidebar est cachée par erreur
+if 'force_sidebar_visible' not in st.session_state:
+    st.session_state.force_sidebar_visible = True
+    st.session_state.mode_presentation = False
 if 'etape_progression' not in st.session_state:
     st.session_state.etape_progression = 1  # 1=Config, 2=Simulation, 3=Analyse, 4=Export
 
@@ -629,8 +634,8 @@ def render_header_sticky():
     current_time = datetime.now().strftime("%H:%M")
     current_date = datetime.now().strftime("%d/%m/%Y")
     
-    # Boutons mode présentation et thème
-    col_pres, col_theme_btn = st.columns([1, 1])
+    # Boutons mode présentation, thème et réinitialisation
+    col_pres, col_theme_btn, col_reset = st.columns([1, 1, 1])
     with col_pres:
         if st.button("🖥️ Mode Présentation" if not st.session_state.mode_presentation else "📱 Mode Normal", 
                      key="btn_presentation", use_container_width=True):
@@ -640,6 +645,13 @@ def render_header_sticky():
         theme_icon = "☀️ Mode Clair" if st.session_state.theme == 'dark' else "🌙 Mode Sombre"
         if st.button(theme_icon, key="btn_theme", use_container_width=True):
             st.session_state.theme = 'light' if st.session_state.theme == 'dark' else 'dark'
+            st.rerun()
+    with col_reset:
+        if st.button("🔄 Réinitialiser", key="btn_reset", use_container_width=True):
+            st.session_state.mode_presentation = False
+            st.session_state.simulation_lancee = False
+            st.session_state.resultats_simulation = None
+            st.session_state.etape_progression = 1
             st.rerun()
     
     # Header principal
