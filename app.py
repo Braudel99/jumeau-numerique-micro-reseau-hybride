@@ -59,6 +59,10 @@ st.markdown("""
     [data-testid="stToolbar"] {display: none;}
     [data-testid="stDecoration"] {display: none;}
     [data-testid="stStatusWidget"] {display: none;}
+    [data-testid="collapsedControl"] {display: none;}
+    button[kind="headerNoPadding"] {display: none;}
+    .css-1rs6os {display: none;}
+    .css-17ziqus {display: none;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -629,19 +633,18 @@ def render_header_sticky():
     current_time = datetime.now().strftime("%H:%M")
     current_date = datetime.now().strftime("%d/%m/%Y")
     
-    # Boutons mode présentation et thème (seulement si simulation lancée)
-    if st.session_state.simulation_lancee:
-        col_pres, col_theme_btn = st.columns([1, 1])
-        with col_pres:
-            if st.button("📱 Mode Normal" if st.session_state.mode_presentation else "🖥️ Mode Présentation", 
-                         key="btn_presentation", use_container_width=True):
-                st.session_state.mode_presentation = not st.session_state.mode_presentation
-                st.rerun()
-        with col_theme_btn:
-            theme_icon = "☀️ Mode Clair" if st.session_state.theme == 'dark' else "🌙 Mode Sombre"
-            if st.button(theme_icon, key="btn_theme", use_container_width=True):
-                st.session_state.theme = 'light' if st.session_state.theme == 'dark' else 'dark'
-                st.rerun()
+    # Boutons mode présentation et thème (toujours visibles)
+    col_pres, col_theme_btn = st.columns([1, 1])
+    with col_pres:
+        if st.button("📱 Mode Normal" if st.session_state.mode_presentation else "🖥️ Mode Présentation", 
+                     key="btn_presentation", use_container_width=True):
+            st.session_state.mode_presentation = not st.session_state.mode_presentation
+            st.rerun()
+    with col_theme_btn:
+        theme_icon = "☀️ Mode Clair" if st.session_state.theme == 'dark' else "🌙 Mode Sombre"
+        if st.button(theme_icon, key="btn_theme", use_container_width=True):
+            st.session_state.theme = 'light' if st.session_state.theme == 'dark' else 'dark'
+            st.rerun()
     
     # Header principal
     st.markdown(f"""
@@ -1278,17 +1281,12 @@ def run_simulation_multi_jours(config, nb_jours, variabilite=True):
 # ONGLETS PRINCIPAUX
 # ============================================================================
 st.markdown("---")
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Simulation 24h", "📅 Multi-Jours", "🔄 Comparaison", "📥 Export", "🎓 Mode Pédagogique"])
 
-# ============================================================================
-# TAB 1: SIMULATION 24H
-# ============================================================================
-with tab1:
-    # Mise à jour de l'étape de progression
-    if not st.session_state.simulation_lancee:
-        st.session_state.etape_progression = 1
+# Afficher les onglets seulement si simulation lancée, sinon afficher le bouton
+if not st.session_state.simulation_lancee:
+    st.markdown("### 🚀 Prêt à simuler")
+    st.info("👈 Configurez les paramètres dans la barre latérale, puis cliquez sur le bouton ci-dessous.")
     
-    # Bouton centré
     col_left, col_center, col_right = st.columns([1, 2, 1])
     with col_center:
         if st.button("🚀 LANCER SIMULATION", type="primary", use_container_width=True):
@@ -1299,12 +1297,18 @@ with tab1:
                 # Passer automatiquement en mode présentation
                 st.session_state.mode_presentation = True
             st.rerun()
-    
-    if st.session_state.simulation_lancee and st.session_state.resultats_simulation:
-        res = st.session_state.resultats_simulation
-        
+else:
+    # Simulation lancée - afficher les onglets
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Simulation 24h", "📅 Multi-Jours", "🔄 Comparaison", "📥 Export", "🎓 Mode Pédagogique"])
+
+    # ============================================================================
+    # TAB 1: SIMULATION 24H
+    # ============================================================================
+    with tab1:
         # Mise à jour progression vers Analyse
         st.session_state.etape_progression = 3
+        
+        res = st.session_state.resultats_simulation
         
         # Alerte
         if res['heures_hors_tension'] > 0:
@@ -1621,19 +1625,19 @@ with tab1:
                 }
                 st.toast(f"✅ '{scenario_name}' sauvegardé!", icon="✅")
 
-# ============================================================================
-# TAB 2: MULTI-JOURS
-# ============================================================================
-with tab2:
-    st.markdown("### 📅 Simulation Multi-Jours")
-    
-    col_m1, col_m2, col_m3 = st.columns(3)
-    with col_m1:
-        nb_jours = st.selectbox("Durée", [7, 14, 30], format_func=lambda x: f"{x} jours")
-    with col_m2:
-        variabilite = st.checkbox("Variabilité météo", True)
-    with col_m3:
-        st.markdown("<br>", unsafe_allow_html=True)
+    # ============================================================================
+    # TAB 2: MULTI-JOURS
+    # ============================================================================
+    with tab2:
+        st.markdown("### 📅 Simulation Multi-Jours")
+        
+        col_m1, col_m2, col_m3 = st.columns(3)
+        with col_m1:
+            nb_jours = st.selectbox("Durée", [7, 14, 30], format_func=lambda x: f"{x} jours")
+        with col_m2:
+            variabilite = st.checkbox("Variabilité météo", True)
+        with col_m3:
+            st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🚀 Lancer Multi-Jours", type="primary", use_container_width=True):
             st.session_state.multi_jours_resultats = run_simulation_multi_jours(config, nb_jours, variabilite)
             st.success("✅ Terminé!")
